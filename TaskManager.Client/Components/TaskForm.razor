@@ -1,0 +1,164 @@
+@using TaskManager.Client.Models
+@inject ICategoryService CategoryService
+
+<EditForm Model="@TaskModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    
+    <div class="mb-3">
+        <label class="form-label">Title <span class="text-danger">*</span></label>
+        <InputText class="form-control" @bind-Value="TaskModel.Title" placeholder="Enter task title" />
+        <ValidationMessage For="@(() => TaskModel.Title)" class="text-danger" />
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <InputTextArea class="form-control" @bind-Value="TaskModel.Description" rows="3" placeholder="Enter task description (optional)" />
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Priority</label>
+            <InputSelect class="form-select" @bind-Value="TaskModel.Priority">
+                @foreach (var priority in Enum.GetValues<Priority>())
+                {
+                    <option value="@priority">@priority</option>
+                }
+            </InputSelect>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Due Date</label>
+            <InputDate class="form-control" @bind-Value="DueDate" />
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Categories</label>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach (var category in AvailableCategories)
+            {
+                <div class="form-check">
+                    <input class="form-check-input" 
+                           type="checkbox" 
+                           id="@($"cat-{category.Id}")"
+                           checked="@SelectedCategoryIds.Contains(category.Id)"
+                           @onchange="@(e => ToggleCategory(category.Id, (bool)e.Value!))" />
+                    <label class="form-check-label" for="@($"cat-{category.Id}")" style="color: @category.Color;">
+                        @category.Name
+                    </label>
+                </div>
+            }
+        </div>
+        @if (!AvailableCategories.Any())
+        {
+            <p class="text-muted small">No categories available. <a href="categories">Create some categories</a> first.</p>
+        }
+    </div>
+    
+    <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
+            Cancel
+        </button>
+        <button type="submit" class="btn btn-primary" disabled="@IsSubmitting">
+            @if (IsSubmitting)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            }
+            @(IsEditMode ? "Update Task" : "Create Task")
+        </button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public TodoTask? Task { get; set; }
+
+    [Parameter]
+    public EventCallback<TodoTask> OnSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private TaskFormModel TaskModel { get; set; } = new();
+    private List<Category> AvailableCategories { get; set; } = new();
+    private HashSet<Guid> SelectedCategoryIds { get; set; } = new();
+    private DateTime? DueDate { get; set; }
+    private bool IsEditMode => Task != null;
+    private bool IsSubmitting { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AvailableCategories = await CategoryService.GetAllCategoriesAsync();
+        
+        if (Task != null)
+        {
+            TaskModel = new TaskFormModel
+            {
+                Title = Task.Title,
+                Description = Task.Description,
+                Priority = Task.Priority
+            };
+            DueDate = Task.DueDate;
+            SelectedCategoryIds = Task.CategoryIds.ToHashSet();
+        }
+    }
+
+    private void ToggleCategory(Guid categoryId, bool isChecked)
+    {
+        if (isChecked)
+            SelectedCategoryIds.Add(categoryId);
+        else
+            SelectedCategoryIds.Remove(categoryId);
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(TaskModel.Title))
+            return;
+
+        IsSubmitting = true;
+
+        try
+        {
+            TodoTask taskToSave;
+            
+            if (IsEditMode)
+            {
+                taskToSave = Task!;
+                taskToSave.Title = TaskModel.Title;
+                taskToSave.Description = TaskModel.Description;
+                taskToSave.Priority = TaskModel.Priority;
+            }
+            else
+            {
+                taskToSave = TodoTask.Create(
+                    TaskModel.Title,
+                    TaskModel.Description,
+                    TaskModel.Priority,
+                    DueDate
+                );
+            }
+            
+            taskToSave.DueDate = DueDate;
+            taskToSave.CategoryIds = SelectedCategoryIds.ToList();
+
+            await OnSubmit.InvokeAsync(taskToSave);
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private class TaskFormModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public Priority Priority { get; set; } = Priority.Medium;
+    }
+}

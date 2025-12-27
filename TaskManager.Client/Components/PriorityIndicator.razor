@@ -1,0 +1,28 @@
+@using TaskManager.Client.Models
+
+<span class="priority-badge @GetPriorityClass()">
+    <i class="bi @GetPriorityIcon() me-1"></i>@Priority.ToString()
+</span>
+
+@code {
+    [Parameter]
+    public Priority Priority { get; set; }
+
+    private string GetPriorityClass() => Priority switch
+    {
+        Priority.Low => "priority-low",
+        Priority.Medium => "priority-medium",
+        Priority.High => "priority-high",
+        Priority.Urgent => "priority-urgent",
+        _ => "priority-medium"
+    };
+
+    private string GetPriorityIcon() => Priority switch
+    {
+        Priority.Low => "bi-arrow-down",
+        Priority.Medium => "bi-dash",
+        Priority.High => "bi-arrow-up",
+        Priority.Urgent => "bi-exclamation-triangle",
+        _ => "bi-dash"
+    };
+}

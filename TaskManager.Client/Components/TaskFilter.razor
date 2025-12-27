@@ -1,0 +1,130 @@
+@using TaskManager.Client.Models
+@inject ICategoryService CategoryService
+
+<div class="filter-section">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Search</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="Search tasks..."
+                       @bind="Filter.SearchTerm"
+                       @bind:event="oninput"
+                       @onkeyup="OnFilterChange" />
+            </div>
+        </div>
+        
+        <div class="col-md-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" @bind="StatusFilter" @bind:after="OnFilterChange">
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+            </select>
+        </div>
+        
+        <div class="col-md-2">
+            <label class="form-label">Priority</label>
+            <select class="form-select" @bind="PriorityFilter" @bind:after="OnFilterChange">
+                <option value="">All</option>
+                @foreach (var priority in Enum.GetValues<Priority>())
+                {
+                    <option value="@((int)priority)">@priority</option>
+                }
+            </select>
+        </div>
+        
+        <div class="col-md-2">
+            <label class="form-label">Category</label>
+            <select class="form-select" @bind="CategoryFilter" @bind:after="OnFilterChange">
+                <option value="">All</option>
+                @foreach (var category in Categories)
+                {
+                    <option value="@category.Id">@category.Name</option>
+                }
+            </select>
+        </div>
+        
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters" disabled="@(!Filter.HasActiveFilters)">
+                <i class="bi bi-x-circle me-1"></i>Clear
+            </button>
+        </div>
+    </div>
+    
+    <div class="row mt-2">
+        <div class="col-12">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="showOverdue" 
+                       @bind="Filter.ShowOverdueOnly" @bind:after="OnFilterChange" />
+                <label class="form-check-label text-danger" for="showOverdue">
+                    <i class="bi bi-exclamation-circle me-1"></i>Overdue only
+                </label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="showDueToday" 
+                       @bind="Filter.ShowDueTodayOnly" @bind:after="OnFilterChange" />
+                <label class="form-check-label text-warning" for="showDueToday">
+                    <i class="bi bi-calendar-event me-1"></i>Due today only
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Models.TaskFilter Filter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Models.TaskFilter> FilterChanged { get; set; }
+
+    private List<Category> Categories { get; set; } = new();
+    
+    // Helper properties for binding
+    private string StatusFilter
+    {
+        get => Filter.IsCompleted switch
+        {
+            true => "completed",
+            false => "pending",
+            null => ""
+        };
+        set => Filter.IsCompleted = value switch
+        {
+            "completed" => true,
+            "pending" => false,
+            _ => null
+        };
+    }
+    
+    private string PriorityFilter
+    {
+        get => Filter.Priority?.ToString("D") ?? "";
+        set => Filter.Priority = string.IsNullOrEmpty(value) ? null : (Priority)int.Parse(value);
+    }
+    
+    private string CategoryFilter
+    {
+        get => Filter.CategoryId?.ToString() ?? "";
+        set => Filter.CategoryId = string.IsNullOrEmpty(value) ? null : Guid.Parse(value);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Categories = await CategoryService.GetAllCategoriesAsync();
+    }
+
+    private async Task OnFilterChange()
+    {
+        await FilterChanged.InvokeAsync(Filter);
+    }
+
+    private async Task ClearFilters()
+    {
+        Filter.Reset();
+        await FilterChanged.InvokeAsync(Filter);
+    }
+}

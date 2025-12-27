@@ -1,0 +1,63 @@
+@using TaskManager.Client.Models
+
+@if (Tasks == null)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (!Tasks.Any())
+{
+    <div class="empty-state">
+        <i class="bi bi-clipboard-check"></i>
+        <h4>No Tasks Found</h4>
+        <p class="text-muted">@EmptyMessage</p>
+    </div>
+}
+else
+{
+    <div class="task-list">
+        @foreach (var task in Tasks)
+        {
+            <TaskItem 
+                Task="@task"
+                OnTaskToggled="HandleTaskToggled"
+                OnTaskEdit="HandleTaskEdit"
+                OnTaskDelete="HandleTaskDelete" />
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public List<TodoTask>? Tasks { get; set; }
+
+    [Parameter]
+    public string EmptyMessage { get; set; } = "Create your first task to get started!";
+
+    [Parameter]
+    public EventCallback<TodoTask> OnTaskToggled { get; set; }
+
+    [Parameter]
+    public EventCallback<TodoTask> OnTaskEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<TodoTask> OnTaskDelete { get; set; }
+
+    private async Task HandleTaskToggled(TodoTask task)
+    {
+        await OnTaskToggled.InvokeAsync(task);
+    }
+
+    private async Task HandleTaskEdit(TodoTask task)
+    {
+        await OnTaskEdit.InvokeAsync(task);
+    }
+
+    private async Task HandleTaskDelete(TodoTask task)
+    {
+        await OnTaskDelete.InvokeAsync(task);
+    }
+}

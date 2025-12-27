@@ -1,0 +1,107 @@
+@using TaskManager.Client.Models
+@inject ICategoryService CategoryService
+
+<div class="task-card @GetPriorityClass() @(Task.IsCompleted ? "completed" : "")">
+    <div class="d-flex align-items-start">
+        <div class="me-3">
+            <input type="checkbox" 
+                   class="form-check-input task-checkbox" 
+                   checked="@Task.IsCompleted"
+                   @onchange="OnToggleComplete" />
+        </div>
+        <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="task-title mb-0">@Task.Title</h6>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-primary" @onclick="OnEdit" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="OnDelete" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            @if (!string.IsNullOrWhiteSpace(Task.Description))
+            {
+                <p class="text-muted small mb-2">@Task.Description</p>
+            }
+            
+            <div class="d-flex flex-wrap align-items-center gap-2 task-meta">
+                <PriorityIndicator Priority="@Task.Priority" />
+                
+                @if (Task.DueDate.HasValue)
+                {
+                    <span class="due-date @GetDueDateClass()">
+                        <i class="bi bi-calendar"></i>
+                        @Task.DueDate.Value.ToString("MMM dd, yyyy")
+                    </span>
+                }
+                
+                @foreach (var category in Categories)
+                {
+                    <CategoryBadge Category="@category" />
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public TodoTask Task { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<TodoTask> OnTaskToggled { get; set; }
+
+    [Parameter]
+    public EventCallback<TodoTask> OnTaskEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<TodoTask> OnTaskDelete { get; set; }
+
+    private List<Category> Categories { get; set; } = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Task.CategoryIds.Any())
+        {
+            Categories = await CategoryService.GetCategoriesByIdsAsync(Task.CategoryIds);
+        }
+        else
+        {
+            Categories = new List<Category>();
+        }
+    }
+
+    private string GetPriorityClass() => Task.Priority switch
+    {
+        Priority.Low => "priority-low",
+        Priority.Medium => "priority-medium",
+        Priority.High => "priority-high",
+        Priority.Urgent => "priority-urgent",
+        _ => ""
+    };
+
+    private string GetDueDateClass()
+    {
+        if (Task.IsOverdue) return "overdue";
+        if (Task.IsDueSoon) return "due-soon";
+        return "";
+    }
+
+    private async Task OnToggleComplete()
+    {
+        await OnTaskToggled.InvokeAsync(Task);
+    }
+
+    private async Task OnEdit()
+    {
+        await OnTaskEdit.InvokeAsync(Task);
+    }
+
+    private async Task OnDelete()
+    {
+        await OnTaskDelete.InvokeAsync(Task);
+    }
+}

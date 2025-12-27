@@ -1,0 +1,251 @@
+@page "/categories"
+@using TaskManager.Client.Models
+@using TaskManager.Client.Services
+@inject ICategoryService CategoryService
+
+<PageTitle>Categories - Task Manager</PageTitle>
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1><i class="bi bi-tags me-2"></i>Categories</h1>
+    <button class="btn btn-primary" @onclick="ShowAddForm">
+        <i class="bi bi-plus-lg me-2"></i>New Category
+    </button>
+</div>
+
+@if (Categories == null)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (!Categories.Any())
+{
+    <div class="empty-state">
+        <i class="bi bi-tags"></i>
+        <h4>No Categories</h4>
+        <p class="text-muted">Create categories to organize your tasks.</p>
+        <button class="btn btn-primary" @onclick="ShowAddForm">
+            <i class="bi bi-plus-lg me-2"></i>Create Category
+        </button>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var category in Categories)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex align-items-center">
+                                <div class="color-preview me-3" style="background-color: @category.Color; width: 40px; height: 40px; border-radius: 8px;"></div>
+                                <div>
+                                    <h5 class="card-title mb-0">@category.Name</h5>
+                                    <small class="text-muted">@category.Color</small>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-link text-muted" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <button class="dropdown-item" @onclick="() => EditCategory(category)">
+                                            <i class="bi bi-pencil me-2"></i>Edit
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" @onclick="() => DeleteCategory(category)">
+                                            <i class="bi bi-trash me-2"></i>Delete
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <CategoryBadge Category="@category" />
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- Add/Edit Category Modal -->
+@if (ShowCategoryForm)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(EditingCategory == null ? "New Category" : "Edit Category")</h5>
+                    <button type="button" class="btn-close" @onclick="HideCategoryForm"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@FormModel" OnValidSubmit="SaveCategory">
+                        <DataAnnotationsValidator />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Name <span class="text-danger">*</span></label>
+                            <InputText class="form-control" @bind-Value="FormModel.Name" placeholder="Enter category name" />
+                            <ValidationMessage For="@(() => FormModel.Name)" class="text-danger" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Color</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="color" class="form-control form-control-color" @bind="FormModel.Color" title="Choose color" />
+                                <input type="text" class="form-control" @bind="FormModel.Color" placeholder="#000000" style="max-width: 120px;" />
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Preset Colors</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var color in PresetColors)
+                                {
+                                    <button type="button" 
+                                            class="color-picker-swatch @(FormModel.Color == color ? "selected" : "")" 
+                                            style="background-color: @color;"
+                                            @onclick="() => SelectColor(color)">
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Preview</label>
+                            <div>
+                                <span class="category-badge" style="background-color: @(FormModel.Color)33; color: @FormModel.Color;">
+                                    @(string.IsNullOrWhiteSpace(FormModel.Name) ? "Category Name" : FormModel.Name)
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="HideCategoryForm">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@string.IsNullOrWhiteSpace(FormModel.Name)">
+                                @(EditingCategory == null ? "Create" : "Update")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation -->
+<ConfirmDialog IsVisible="@(CategoryToDelete != null)"
+               Title="Delete Category"
+               Message="@($"Are you sure you want to delete the category \"{CategoryToDelete?.Name}\"? Tasks using this category will no longer display it.")"
+               ConfirmText="Delete"
+               OnConfirm="ConfirmDelete"
+               OnCancel="CancelDelete" />
+
+@code {
+    private List<Category>? Categories { get; set; }
+    private bool ShowCategoryForm { get; set; }
+    private Category? EditingCategory { get; set; }
+    private Category? CategoryToDelete { get; set; }
+    private CategoryFormModel FormModel { get; set; } = new();
+    
+    private readonly string[] PresetColors = new[]
+    {
+        "#3498db", "#9b59b6", "#2ecc71", "#e74c3c", "#f39c12",
+        "#1abc9c", "#e67e22", "#34495e", "#16a085", "#c0392b",
+        "#8e44ad", "#27ae60", "#2980b9", "#d35400", "#7f8c8d"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        Categories = await CategoryService.GetAllCategoriesAsync();
+    }
+
+    private void ShowAddForm()
+    {
+        EditingCategory = null;
+        FormModel = new CategoryFormModel { Color = "#3498db" };
+        ShowCategoryForm = true;
+    }
+
+    private void EditCategory(Category category)
+    {
+        EditingCategory = category;
+        FormModel = new CategoryFormModel
+        {
+            Name = category.Name,
+            Color = category.Color
+        };
+        ShowCategoryForm = true;
+    }
+
+    private void HideCategoryForm()
+    {
+        ShowCategoryForm = false;
+        EditingCategory = null;
+    }
+
+    private void SelectColor(string color)
+    {
+        FormModel.Color = color;
+    }
+
+    private async Task SaveCategory()
+    {
+        if (string.IsNullOrWhiteSpace(FormModel.Name))
+            return;
+
+        if (EditingCategory != null)
+        {
+            EditingCategory.Name = FormModel.Name;
+            EditingCategory.Color = FormModel.Color;
+            await CategoryService.UpdateCategoryAsync(EditingCategory);
+        }
+        else
+        {
+            var category = Category.Create(FormModel.Name, FormModel.Color);
+            await CategoryService.CreateCategoryAsync(category);
+        }
+        
+        HideCategoryForm();
+        await LoadCategories();
+    }
+
+    private void DeleteCategory(Category category)
+    {
+        CategoryToDelete = category;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (CategoryToDelete != null)
+        {
+            await CategoryService.DeleteCategoryAsync(CategoryToDelete.Id);
+            CategoryToDelete = null;
+            await LoadCategories();
+        }
+    }
+
+    private void CancelDelete()
+    {
+        CategoryToDelete = null;
+    }
+
+    private class CategoryFormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Color { get; set; } = "#3498db";
+    }
+}
