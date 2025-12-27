@@ -1,0 +1,22 @@
+@using TaskManager.Client.Models
+
+<span class="category-badge" style="background-color: @GetBackgroundColor(); color: @GetTextColor();">
+    @Category.Name
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public Category Category { get; set; } = default!;
+
+    private string GetBackgroundColor()
+    {
+        // Return a lighter version of the category color
+        return Category.Color + "33"; // Adding alpha for transparency
+    }
+
+    private string GetTextColor()
+    {
+        // Return the original category color for text
+        return Category.Color;
+    }
+}

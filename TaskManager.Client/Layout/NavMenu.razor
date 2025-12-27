@@ -1,0 +1,31 @@
+<ul class="nav flex-column">
+    <li class="nav-item">
+        <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+            <i class="bi bi-house"></i>
+            Dashboard
+        </NavLink>
+    </li>
+    <li class="nav-item">
+        <NavLink class="nav-link" href="tasks">
+            <i class="bi bi-list-task"></i>
+            Tasks
+        </NavLink>
+    </li>
+    <li class="nav-item">
+        <NavLink class="nav-link" href="categories">
+            <i class="bi bi-tags"></i>
+            Categories
+        </NavLink>
+    </li>
+</ul>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

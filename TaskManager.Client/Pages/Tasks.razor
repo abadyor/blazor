@@ -1,0 +1,161 @@
+@page "/tasks"
+@using TaskManager.Client.Models
+@using TaskManager.Client.Services
+@inject ITaskService TaskService
+
+<PageTitle>Tasks - Task Manager</PageTitle>
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1><i class="bi bi-list-task me-2"></i>Tasks</h1>
+    <button class="btn btn-primary" @onclick="ShowAddForm">
+        <i class="bi bi-plus-lg me-2"></i>New Task
+    </button>
+</div>
+
+<!-- Filter Component -->
+<Components.TaskFilter Filter="@Filter" FilterChanged="HandleFilterChange" />
+
+<!-- Task List -->
+@if (FilteredTasks == null)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted">
+            Showing @FilteredTasks.Count task(s)
+            @if (Filter.HasActiveFilters)
+            {
+                <span class="badge bg-info ms-2">Filtered</span>
+            }
+        </span>
+    </div>
+    
+    <TaskList Tasks="@FilteredTasks" 
+              EmptyMessage="@GetEmptyMessage()"
+              OnTaskToggled="HandleTaskToggled" 
+              OnTaskEdit="HandleTaskEdit"
+              OnTaskDelete="HandleTaskDelete" />
+}
+
+<!-- Add/Edit Task Modal -->
+@if (ShowTaskForm)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(EditingTask == null ? "New Task" : "Edit Task")</h5>
+                    <button type="button" class="btn-close" @onclick="HideTaskForm"></button>
+                </div>
+                <div class="modal-body">
+                    <TaskForm Task="@EditingTask" OnSubmit="SaveTask" OnCancel="HideTaskForm" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation -->
+<ConfirmDialog IsVisible="@(TaskToDelete != null)"
+               Title="Delete Task"
+               Message="@($"Are you sure you want to delete \"{TaskToDelete?.Title}\"? This action cannot be undone.")"
+               ConfirmText="Delete"
+               OnConfirm="ConfirmDelete"
+               OnCancel="CancelDelete" />
+
+@code {
+    private List<TodoTask>? FilteredTasks { get; set; }
+    private Models.TaskFilter Filter { get; set; } = new();
+    
+    private bool ShowTaskForm { get; set; }
+    private TodoTask? EditingTask { get; set; }
+    private TodoTask? TaskToDelete { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTasks();
+    }
+
+    private async Task LoadTasks()
+    {
+        FilteredTasks = await TaskService.GetFilteredTasksAsync(Filter);
+    }
+
+    private async Task HandleFilterChange(Models.TaskFilter filter)
+    {
+        Filter = filter;
+        await LoadTasks();
+    }
+
+    private async Task HandleTaskToggled(TodoTask task)
+    {
+        await TaskService.ToggleTaskCompletionAsync(task.Id);
+        await LoadTasks();
+    }
+
+    private void HandleTaskEdit(TodoTask task)
+    {
+        EditingTask = task;
+        ShowTaskForm = true;
+    }
+
+    private void HandleTaskDelete(TodoTask task)
+    {
+        TaskToDelete = task;
+    }
+
+    private void ShowAddForm()
+    {
+        EditingTask = null;
+        ShowTaskForm = true;
+    }
+
+    private void HideTaskForm()
+    {
+        ShowTaskForm = false;
+        EditingTask = null;
+    }
+
+    private async Task SaveTask(TodoTask task)
+    {
+        if (EditingTask != null)
+        {
+            await TaskService.UpdateTaskAsync(task);
+        }
+        else
+        {
+            await TaskService.CreateTaskAsync(task);
+        }
+        
+        HideTaskForm();
+        await LoadTasks();
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (TaskToDelete != null)
+        {
+            await TaskService.DeleteTaskAsync(TaskToDelete.Id);
+            TaskToDelete = null;
+            await LoadTasks();
+        }
+    }
+
+    private void CancelDelete()
+    {
+        TaskToDelete = null;
+    }
+
+    private string GetEmptyMessage()
+    {
+        if (Filter.HasActiveFilters)
+            return "No tasks match your filter criteria. Try adjusting your filters.";
+        return "No tasks yet. Create your first task to get started!";
+    }
+}

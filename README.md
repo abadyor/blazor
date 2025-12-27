@@ -1,42 +1,33 @@
-# Blazor WebAssembly Application
+# Task Manager - Blazor WebAssembly Application
 
-A modern Blazor WebAssembly application template with a complete project structure and VS Code integration.
+A modern, standalone task management application built with Blazor WebAssembly. This application runs entirely in the browser with local storage persistence - no backend server required.
 
 ## Features
 
-- **Blazor WebAssembly**: Client-side web UI framework using C# instead of JavaScript
-- **Component-Based Architecture**: Reusable Razor components for building interactive UIs
-- **Routing**: Built-in navigation with multiple pages (Home, Counter, Fetch Data)
-- **CSS Isolation**: Scoped styling for individual components
-- **VS Code Integration**: Pre-configured launch and task configurations
+- **Task Management**: Create, read, update, and delete tasks
+- **Priority Levels**: Assign Low, Medium, High, or Urgent priority to tasks
+- **Categories**: Organize tasks with customizable color-coded categories
+- **Due Dates**: Set due dates and track overdue tasks
+- **Filtering**: Filter tasks by status, priority, category, and search terms
+- **Dashboard**: Overview with task statistics and quick access to today's and overdue tasks
+- **Offline Support**: Works offline using browser local storage
+- **Responsive Design**: Mobile-friendly interface using Bootstrap 5
 
-## Project Structure
+## Screenshots
 
-```
-blazor/
-├── BlazorApp/
-│   ├── Pages/               # Razor page components
-│   │   ├── Index.razor      # Home page
-│   │   ├── Counter.razor    # Interactive counter demo
-│   │   └── FetchData.razor  # Data fetching example
-│   ├── Shared/              # Shared components
-│   │   ├── MainLayout.razor # Main layout wrapper
-│   │   ├── NavMenu.razor    # Navigation menu
-│   │   └── SurveyPrompt.razor # Survey prompt component
-│   ├── wwwroot/             # Static web assets
-│   │   ├── css/             # Stylesheets
-│   │   ├── sample-data/     # Sample JSON data
-│   │   └── index.html       # Main HTML entry point
-│   ├── App.razor            # Root component with routing
-│   ├── Program.cs           # Application entry point
-│   ├── _Imports.razor       # Global using directives
-│   └── BlazorApp.csproj     # Project configuration
-├── .vscode/                 # VS Code configuration
-│   ├── launch.json          # Debug configuration
-│   └── tasks.json           # Build tasks
-├── .gitignore               # Git ignore rules
-└── README.md                # This file
-```
+The application includes three main pages:
+
+1. **Dashboard**: Overview with stats, quick add form, and today's/overdue tasks
+2. **Tasks**: Full task list with filtering and CRUD operations
+3. **Categories**: Manage task categories with custom colors
+
+## Technology Stack
+
+- **.NET 8** - Latest LTS version
+- **Blazor WebAssembly** - Client-side web framework
+- **Blazored.LocalStorage** - Type-safe local storage access
+- **Bootstrap 5** - CSS framework for responsive design
+- **Bootstrap Icons** - Icon library
 
 ## Prerequisites
 
@@ -45,6 +36,7 @@ To run this application, you need:
 - [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
 - [Visual Studio Code](https://code.visualstudio.com/) (recommended)
 - [C# Dev Kit extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) for VS Code
+- A modern web browser (Chrome, Firefox, Edge, Safari)
 
 ## Getting Started
 
@@ -55,27 +47,26 @@ git clone https://github.com/abadyor/blazor.git
 cd blazor
 ```
 
-### 2. Build the Project
+### 2. Restore Dependencies
 
 ```bash
-cd BlazorApp
-dotnet build
+dotnet restore
 ```
 
 ### 3. Run the Application
 
 ```bash
-dotnet run
+dotnet run --project TaskManager.Client
 ```
 
-The application will start and be available at `https://localhost:5001` (or the URL shown in the console).
+The application will start and be available at `https://localhost:5001` or `http://localhost:5000`
 
 ### 4. Development with Hot Reload
 
 For development with automatic reloading:
 
 ```bash
-dotnet watch run
+dotnet watch run --project TaskManager.Client
 ```
 
 ## VS Code Integration
@@ -94,33 +85,77 @@ Access build tasks via `Ctrl+Shift+B` (Windows/Linux) or `Cmd+Shift+B` (Mac):
 - **publish**: Create a production build
 - **watch**: Run with hot reload
 
+## Project Structure
+
+```
+blazor/
+├── TaskManager.Client/
+│   ├── wwwroot/              # Static files
+│   │   ├── css/              # Stylesheets
+│   │   └── index.html        # Entry point
+│   ├── Layout/               # Layout components
+│   │   ├── MainLayout.razor  # Main layout wrapper
+│   │   └── NavMenu.razor     # Navigation menu
+│   ├── Pages/                # Routable pages
+│   │   ├── Home.razor        # Dashboard page
+│   │   ├── Tasks.razor       # Task list page
+│   │   └── Categories.razor  # Category management
+│   ├── Components/           # Reusable UI components
+│   │   ├── TaskItem.razor    # Individual task display
+│   │   ├── TaskList.razor    # Task list container
+│   │   ├── TaskForm.razor    # Task create/edit form
+│   │   ├── TaskFilter.razor  # Filter controls
+│   │   └── ...               # Other components
+│   ├── Models/               # Data models
+│   │   ├── TodoTask.cs       # Task entity
+│   │   ├── Category.cs       # Category entity
+│   │   ├── Priority.cs       # Priority enum
+│   │   └── TaskFilter.cs     # Filter criteria
+│   ├── Services/             # Business logic services
+│   │   ├── ITaskService.cs   # Task service interface
+│   │   ├── TaskService.cs    # Task service implementation
+│   │   └── ...               # Category services
+│   ├── App.razor             # Root component
+│   └── Program.cs            # Application entry point
+├── .vscode/                  # VS Code configuration
+├── .gitignore                # Git ignore rules
+└── README.md                 # This file
+```
+
+## Data Models
+
+### TodoTask
+- `Id`: Unique identifier
+- `Title`: Task title
+- `Description`: Optional description
+- `IsCompleted`: Completion status
+- `CreatedAt`: Creation timestamp
+- `DueDate`: Optional due date
+- `CompletedAt`: Completion timestamp
+- `Priority`: Low, Medium, High, or Urgent
+- `CategoryIds`: Associated category IDs
+
+### Category
+- `Id`: Unique identifier
+- `Name`: Category name
+- `Color`: Hex color code for display
+
+## Local Storage
+
+Data is persisted in the browser's local storage under these keys:
+- `taskmanager_tasks`: Task data
+- `taskmanager_categories`: Category data
+
 ## Pages Overview
 
-### Home (`/`)
-The landing page with a welcome message and survey prompt.
+### Dashboard (`/`)
+The landing page with task statistics, quick add form, and views for today's and overdue tasks.
 
-### Counter (`/counter`)
-An interactive component demonstrating state management and event handling. Click the button to increment the counter.
+### Tasks (`/tasks`)
+Full task management with filtering, sorting, and CRUD operations.
 
-### Fetch Data (`/fetchdata`)
-Demonstrates asynchronous data fetching and display in a table format using sample weather data.
-
-## Technologies Used
-
-- **Blazor WebAssembly**: Framework for building interactive web UIs with C#
-- **ASP.NET Core 8.0**: Modern web framework
-- **Razor Components**: Component-based UI framework
-- **CSS**: Styling with component isolation
-- **Bootstrap**: CSS framework (referenced in index.html)
-
-## Project Configuration
-
-### Target Framework
-- .NET 8.0
-
-### Key NuGet Packages
-- `Microsoft.AspNetCore.Components.WebAssembly` (8.0.0)
-- `Microsoft.AspNetCore.Components.WebAssembly.DevServer` (8.0.0)
+### Categories (`/categories`)
+Manage task categories with custom names and colors.
 
 ## Development Tips
 
@@ -128,16 +163,7 @@ Demonstrates asynchronous data fetching and display in a table format using samp
 
 1. Create a new `.razor` file in the `Pages` folder
 2. Add the `@page` directive with your route
-3. Add a link in `Shared/NavMenu.razor`
-
-Example:
-```razor
-@page "/mypage"
-
-<PageTitle>My Page</PageTitle>
-
-<h1>My New Page</h1>
-```
+3. Add a link in `Layout/NavMenu.razor`
 
 ### Component Communication
 
@@ -154,23 +180,24 @@ Use `[Parameter]` attributes for parent-to-child communication:
 
 Create a `.razor.css` file with the same name as your component for scoped styles.
 
-## Deployment
-
-### Publish for Production
+## Building for Production
 
 ```bash
-dotnet publish -c Release
+dotnet publish -c Release -o ./publish
 ```
 
-The output will be in `bin/Release/net8.0/publish/wwwroot/` and can be deployed to any static web host.
+The published files can be hosted on any static file server (GitHub Pages, Azure Static Web Apps, Netlify, etc.)
 
-### Hosting Options
+## Future Enhancements
 
-- Azure Static Web Apps
-- GitHub Pages
-- Netlify
-- Vercel
-- Any web server that can serve static files
+- [ ] PWA support (offline capability, installable)
+- [ ] Data export/import (JSON backup)
+- [ ] Dark mode theme
+- [ ] Recurring tasks
+- [ ] Subtasks/checklists
+- [ ] Drag-and-drop reordering
+- [ ] Kanban board view
+- [ ] Cloud sync integration
 
 ## Resources
 
@@ -178,6 +205,14 @@ The output will be in `bin/Release/net8.0/publish/wwwroot/` and can be deployed 
 - [Blazor Tutorial](https://dotnet.microsoft.com/learn/aspnet/blazor-tutorial/intro)
 - [Razor Component Syntax](https://docs.microsoft.com/aspnet/core/blazor/components/)
 - [.NET API Browser](https://docs.microsoft.com/dotnet/api/)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 

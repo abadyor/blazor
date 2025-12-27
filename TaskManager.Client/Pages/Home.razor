@@ -1,0 +1,285 @@
+@page "/"
+@using TaskManager.Client.Models
+@using TaskManager.Client.Services
+@inject ITaskService TaskService
+@inject ICategoryService CategoryService
+
+<PageTitle>Dashboard - Task Manager</PageTitle>
+
+<div class="page-header">
+    <h1><i class="bi bi-house me-2"></i>Dashboard</h1>
+</div>
+
+@if (Stats == null)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-value">@Stats.TotalTasks</div>
+                        <div class="stats-label">Total Tasks</div>
+                    </div>
+                    <div class="stats-icon bg-primary text-white">
+                        <i class="bi bi-list-task"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-value">@Stats.CompletedTasks</div>
+                        <div class="stats-label">Completed</div>
+                    </div>
+                    <div class="stats-icon bg-success text-white">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-value text-danger">@Stats.OverdueTasks</div>
+                        <div class="stats-label">Overdue</div>
+                    </div>
+                    <div class="stats-icon bg-danger text-white">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-value text-warning">@Stats.DueTodayTasks</div>
+                        <div class="stats-label">Due Today</div>
+                    </div>
+                    <div class="stats-icon bg-warning text-dark">
+                        <i class="bi bi-calendar-event"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Add Task -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Quick Add Task</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <input type="text" 
+                                   class="form-control" 
+                                   placeholder="What needs to be done?"
+                                   @bind="NewTaskTitle"
+                                   @onkeyup="HandleQuickAddKeyUp" />
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" @bind="NewTaskPriority">
+                                @foreach (var priority in Enum.GetValues<Priority>())
+                                {
+                                    <option value="@priority">@priority</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100" @onclick="QuickAddTask" disabled="@string.IsNullOrWhiteSpace(NewTaskTitle)">
+                                <i class="bi bi-plus-lg me-1"></i>Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Tasks -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Due Today</h5>
+                    <span class="badge bg-warning">@TodayTasks.Count</span>
+                </div>
+                <div class="card-body">
+                    @if (TodayTasks.Any())
+                    {
+                        <TaskList Tasks="@TodayTasks" 
+                                  EmptyMessage="No tasks due today"
+                                  OnTaskToggled="HandleTaskToggled" 
+                                  OnTaskEdit="HandleTaskEdit"
+                                  OnTaskDelete="HandleTaskDelete" />
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-emoji-smile" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No tasks due today!</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-circle me-2"></i>Overdue</h5>
+                    <span class="badge bg-danger">@OverdueTasks.Count</span>
+                </div>
+                <div class="card-body">
+                    @if (OverdueTasks.Any())
+                    {
+                        <TaskList Tasks="@OverdueTasks" 
+                                  EmptyMessage="No overdue tasks"
+                                  OnTaskToggled="HandleTaskToggled" 
+                                  OnTaskEdit="HandleTaskEdit"
+                                  OnTaskDelete="HandleTaskDelete" />
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No overdue tasks!</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Edit Task Modal -->
+@if (EditingTask != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Task</h5>
+                    <button type="button" class="btn-close" @onclick="CancelEdit"></button>
+                </div>
+                <div class="modal-body">
+                    <TaskForm Task="@EditingTask" OnSubmit="SaveTask" OnCancel="CancelEdit" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation -->
+<ConfirmDialog IsVisible="@(TaskToDelete != null)"
+               Title="Delete Task"
+               Message="@($"Are you sure you want to delete \"{TaskToDelete?.Title}\"? This action cannot be undone.")"
+               ConfirmText="Delete"
+               OnConfirm="ConfirmDelete"
+               OnCancel="CancelDelete" />
+
+@code {
+    private TaskStats? Stats { get; set; }
+    private List<TodoTask> TodayTasks { get; set; } = new();
+    private List<TodoTask> OverdueTasks { get; set; } = new();
+    
+    private string NewTaskTitle { get; set; } = string.Empty;
+    private Priority NewTaskPriority { get; set; } = Priority.Medium;
+    
+    private TodoTask? EditingTask { get; set; }
+    private TodoTask? TaskToDelete { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CategoryService.InitializeDefaultCategoriesAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        Stats = await TaskService.GetTaskStatsAsync();
+        
+        var allTasks = await TaskService.GetAllTasksAsync();
+        TodayTasks = allTasks.Where(t => t.IsDueToday).ToList();
+        OverdueTasks = allTasks.Where(t => t.IsOverdue).ToList();
+    }
+
+    private async Task QuickAddTask()
+    {
+        if (string.IsNullOrWhiteSpace(NewTaskTitle))
+            return;
+
+        var task = TodoTask.Create(NewTaskTitle, priority: NewTaskPriority);
+        await TaskService.CreateTaskAsync(task);
+        
+        NewTaskTitle = string.Empty;
+        NewTaskPriority = Priority.Medium;
+        
+        await LoadData();
+    }
+
+    private async Task HandleQuickAddKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await QuickAddTask();
+        }
+    }
+
+    private async Task HandleTaskToggled(TodoTask task)
+    {
+        await TaskService.ToggleTaskCompletionAsync(task.Id);
+        await LoadData();
+    }
+
+    private void HandleTaskEdit(TodoTask task)
+    {
+        EditingTask = task;
+    }
+
+    private void HandleTaskDelete(TodoTask task)
+    {
+        TaskToDelete = task;
+    }
+
+    private async Task SaveTask(TodoTask task)
+    {
+        await TaskService.UpdateTaskAsync(task);
+        EditingTask = null;
+        await LoadData();
+    }
+
+    private void CancelEdit()
+    {
+        EditingTask = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (TaskToDelete != null)
+        {
+            await TaskService.DeleteTaskAsync(TaskToDelete.Id);
+            TaskToDelete = null;
+            await LoadData();
+        }
+    }
+
+    private void CancelDelete()
+    {
+        TaskToDelete = null;
+    }
+}

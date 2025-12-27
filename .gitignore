@@ -35,6 +35,10 @@ bld/
 !.vscode/extensions.json
 *.code-workspace
 
+# JetBrains Rider
+*.sln.iml
+.idea/
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
@@ -48,6 +52,14 @@ nunit-*.xml
 project.lock.json
 project.fragment.lock.json
 artifacts/
+
+# NuGet
+*.nupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+nuget-publish/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -104,10 +116,6 @@ _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
 
-# JetBrains Rider
-*.sln.iml
-.idea/
-
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
@@ -120,6 +128,12 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
 
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
@@ -133,3 +147,17 @@ typings/
 
 # Visual Studio 6 workspace options file
 *.opt
+
+# Publish output
+publish/
+[Pp]ublish/
+
+# Testing
+[Cc]overage/
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+
+# Blazor WASM specific
+wwwroot/_framework/
